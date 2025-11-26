@@ -204,23 +204,27 @@ renderer.shadowMap.enabled = true;
 document.getElementById('game-container').appendChild(renderer.domElement);
 
 // Lighting
-// Add soft ambient light so objects stay visible regardless of direction
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
-scene.add(ambientLight);
+// Replace the previous mix of lights with a clean sun + soft ambient setup
+scene.add(new THREE.AmbientLight(0xffffff, 0.5)); // overall fill so things never go totally dark
 
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
-scene.add(hemiLight);
+// Warm directional "sun" high in the sky, casting long but clear shadows
+const sunLight = new THREE.DirectionalLight(0xfff2c2, 1.2);
+sunLight.position.set(60, 80, 20);
+sunLight.castShadow = true;
 
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
-dirLight.position.set(10, 20, 10);
-dirLight.castShadow = true;
-dirLight.shadow.camera.top = 50;
-dirLight.shadow.camera.bottom = -50;
-dirLight.shadow.camera.left = -50;
-dirLight.shadow.camera.right = 50;
-dirLight.shadow.mapSize.width = 2048;
-dirLight.shadow.mapSize.height = 2048;
-scene.add(dirLight);
+// Configure shadow camera for stable shadows across the whole play area
+sunLight.shadow.camera.top = 80;
+sunLight.shadow.camera.bottom = -80;
+sunLight.shadow.camera.left = -80;
+sunLight.shadow.camera.right = 80;
+sunLight.shadow.mapSize.width = 2048;
+sunLight.shadow.mapSize.height = 2048;
+sunLight.shadow.bias = -0.0002;
+
+// Point the sun at the world center so lighting stays consistent as you move
+sunLight.target.position.set(0, 0, 0);
+scene.add(sunLight.target);
+scene.add(sunLight);
 
 // World
 const world = new GameWorld(scene);
