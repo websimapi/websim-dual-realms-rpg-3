@@ -184,8 +184,10 @@ loadSound('levelup', '/sfx_levelup.mp3');
 
 // --- Three.js Setup ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87CEEB);
-scene.fog = new THREE.Fog(0x87CEEB, 20, 60);
+// Soften sky color slightly and remove fog for clearer lighting
+scene.background = new THREE.Color(0xbfd1e5);
+// Remove fog to avoid weird hazy look when zooming
+// scene.fog = new THREE.Fog(0x87CEEB, 20, 60);
 
 const camera = new THREE.PerspectiveCamera(
     60,
@@ -202,10 +204,14 @@ renderer.shadowMap.enabled = true;
 document.getElementById('game-container').appendChild(renderer.domElement);
 
 // Lighting
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+// Add soft ambient light so objects stay visible regardless of direction
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+scene.add(ambientLight);
+
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
 scene.add(hemiLight);
 
-const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
 dirLight.position.set(10, 20, 10);
 dirLight.castShadow = true;
 dirLight.shadow.camera.top = 50;
