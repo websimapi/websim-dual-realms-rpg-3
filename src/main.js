@@ -484,6 +484,15 @@ window.addEventListener('pointermove', onPointerMove);
 window.addEventListener('pointerup', onPointerUp);
 window.addEventListener('pointercancel', onPointerUp);
 
+// Mouse wheel zoom support
+window.addEventListener('wheel', (event) => {
+    // Zoom out (deltaY > 0) -> increase cameraZoom
+    // Zoom in (deltaY < 0) -> decrease cameraZoom
+    const sensitivity = 0.001;
+    cameraZoom += event.deltaY * sensitivity;
+    cameraZoom = Math.min(2.5, Math.max(0.5, cameraZoom));
+});
+
 // --- Player & Camera Update ---
 function updatePlayer(delta) {
     const player = state.player;
@@ -534,11 +543,12 @@ function updateCamera() {
     if (!player.mesh) return;
 
     // Simple isometric follow with zoom
+    // Removed lerp to ensure camera stays perfectly focused on player without swinging/wobbling
     const baseOffset = new THREE.Vector3(20, 25, 20);
     const offset = baseOffset.clone().multiplyScalar(cameraZoom);
     const desiredPos = new THREE.Vector3().addVectors(player.pos, offset);
 
-    camera.position.lerp(desiredPos, 0.1);
+    camera.position.copy(desiredPos);
     camera.lookAt(player.pos.x, player.pos.y, player.pos.z);
 }
 
