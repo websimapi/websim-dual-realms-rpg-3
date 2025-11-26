@@ -520,9 +520,23 @@ function updatePlayer(delta) {
             const moveDist = Math.min(dist, player.speed * delta);
             player.pos.addScaledVector(dir, moveDist);
 
-            // Rotate character towards movement direction
-            const yaw = Math.atan2(dir.x, dir.z);
-            player.mesh.rotation.y = yaw;
+            // Rotate character smoothly towards movement direction
+            const targetYaw = Math.atan2(dir.x, dir.z);
+            const currentYaw = player.mesh.rotation.y;
+
+            // Helper to smoothly interpolate angles while handling wrap-around
+            const angleDiff = ((targetYaw - currentYaw + Math.PI) % (2 * Math.PI)) - Math.PI;
+            const turnSpeed = 10; // higher = snappier turn, lower = slower
+            const maxStep = turnSpeed * delta;
+            let newYaw;
+
+            if (Math.abs(angleDiff) <= maxStep) {
+                newYaw = targetYaw;
+            } else {
+                newYaw = currentYaw + Math.sign(angleDiff) * maxStep;
+            }
+
+            player.mesh.rotation.y = newYaw;
         }
     }
 
