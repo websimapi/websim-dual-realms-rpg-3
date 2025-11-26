@@ -204,27 +204,26 @@ renderer.shadowMap.enabled = true;
 document.getElementById('game-container').appendChild(renderer.domElement);
 
 // Lighting
-// Replace the previous mix of lights with a clean sun + soft ambient setup
-scene.add(new THREE.AmbientLight(0xffffff, 0.5)); // overall fill so things never go totally dark
+// Add global lighting + a sun directional light with day/night cycle
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
+scene.add(ambientLight);
 
-// Warm directional "sun" high in the sky, casting long but clear shadows
-const sunLight = new THREE.DirectionalLight(0xfff2c2, 1.2);
-sunLight.position.set(60, 80, 20);
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.3);
+scene.add(hemiLight);
+
+// Sun / directional light
+const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
 sunLight.castShadow = true;
-
-// Configure shadow camera for stable shadows across the whole play area
-sunLight.shadow.camera.top = 80;
-sunLight.shadow.camera.bottom = -80;
-sunLight.shadow.camera.left = -80;
-sunLight.shadow.camera.right = 80;
+sunLight.shadow.camera.top = 50;
+sunLight.shadow.camera.bottom = -50;
+sunLight.shadow.camera.left = -50;
+sunLight.shadow.camera.right = 50;
 sunLight.shadow.mapSize.width = 2048;
 sunLight.shadow.mapSize.height = 2048;
-sunLight.shadow.bias = -0.0002;
-
-// Point the sun at the world center so lighting stays consistent as you move
-sunLight.target.position.set(0, 0, 0);
-scene.add(sunLight.target);
 scene.add(sunLight);
+
+// Sun state for day/night cycle
+let sunTime = 0; // 0..1 over a full "day"
 
 // World
 const world = new GameWorld(scene);
@@ -633,6 +632,52 @@ function updateUI() {
     }
 }
 
+// Day/Night cycle lighting update
+function updateLighting(delta) {
+    // Full day length in seconds (adjust to taste)
+    const dayLengthSeconds = 240; // 4 minutes for a full cycle
+    const daySpeed = 1 / dayLengthSeconds;
+
+    // Advance time-of-day
+    sunTime = (sunTime + delta * daySpeed) % 1; // 0..1
+
+    // Convert time to angle: 0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset
+    const angle = sunTime * Math.PI * 2;
+
+    // Fixed radius for sun's orbit
+    const radius = 80;
+    const y = Math.sin(angle) * radius;
+    const x = Math.cos(angle) * radius * 0.5; // squash a bit so sun is not too far
+    const z = Math.cos(angle) * radius;
+
+    sunLight.position.set(x, y, z);
+    sunLight.target.position.set(0, 0, 0);
+    sunLight.target.updateMatrixWorld();
+
+    // Light intensity and color based on height
+    const heightNorm = Math.max(0, y / radius); // 0 at horizon, 1 at zenith
+    const sunIntensity = 0.2 + heightNorm * 0.8; // 0.2..1.0
+    sunLight.intensity = sunIntensity;
+
+    // Ambient light is stronger during the day, weaker at night
+    const ambientIntensity = 0.15 + heightNorm * 0.35; // 0.15..0.5
+    ambientLight.intensity = ambientIntensity;
+
+    // Simple color shift: warm at sunrise/sunset, white at noon, bluish at night
+    if (heightNorm > 0.2) {
+        // Daytime
+        const t = (heightNorm - 0.2) / 0.8;
+        const dayColor = new THREE.Color(0xffffff);
+        const warmColor = new THREE.Color(0xffe0b2);
+        sunLight.color.copy(warmColor).lerp(dayColor, t);
+        scene.background.set(0xbfd1e5);
+    } else {
+        // Night
+        sunLight.color.set(0x9bbcff);
+        scene.background.set(0x05080d);
+    }
+}
+
 // --- Main Loop ---
 function animate(time) {
     const t = time * 0.001;
@@ -641,6 +686,7 @@ function animate(time) {
 
     updatePlayer(delta);
     updateCamera();
+    updateLighting(delta);
     drawMinimap();
 
     renderer.render(scene, camera);
