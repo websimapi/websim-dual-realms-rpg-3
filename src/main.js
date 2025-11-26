@@ -205,19 +205,21 @@ document.getElementById('game-container').appendChild(renderer.domElement);
 
 // Lighting
 // Add global lighting + a sun directional light with day/night cycle
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
 scene.add(ambientLight);
 
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.3);
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.1);
 scene.add(hemiLight);
 
 // Sun / directional light
 const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
 sunLight.castShadow = true;
-sunLight.shadow.camera.top = 100;
-sunLight.shadow.camera.bottom = -100;
-sunLight.shadow.camera.left = -100;
-sunLight.shadow.camera.right = 100;
+sunLight.shadow.camera.top = 60;
+sunLight.shadow.camera.bottom = -60;
+sunLight.shadow.camera.left = -60;
+sunLight.shadow.camera.right = 60;
+sunLight.shadow.camera.near = 0.1;
+sunLight.shadow.camera.far = 300;
 sunLight.shadow.mapSize.width = 2048;
 sunLight.shadow.mapSize.height = 2048;
 sunLight.shadow.bias = -0.0005;
@@ -645,11 +647,11 @@ function updateLighting(delta) {
     const sinC = Math.sin(cycle); 
     const cosC = Math.cos(cycle);
 
-    // Keep the sun relative to player position to prevent shadow clipping/jitter
-    const center = state.player.mesh ? state.player.mesh.position : new THREE.Vector3(0,0,0);
+    // Fixed world center for lighting
+    const center = new THREE.Vector3(0, 0, 0);
     sunLight.target.position.copy(center);
 
-    const orbitRadius = 80;
+    const orbitRadius = 100;
     const isDay = sinC >= -0.2; // Allow overlap for twilight
     
     let sunPos = new THREE.Vector3();
@@ -659,12 +661,12 @@ function updateLighting(delta) {
 
     if (isDay) {
         // Sun Logic
-        // X goes 80 -> -80 (East to West)
-        // Y goes 0 -> 80 -> 0 (Height)
-        sunPos.set(cosC * orbitRadius, sinC * orbitRadius, Math.cos(cycle * 0.5) * 20);
+        // X goes 100 -> -100 (East to West)
+        // Y goes 0 -> 100 -> 0 (Height)
+        sunPos.set(cosC * orbitRadius, sinC * orbitRadius, Math.cos(cycle * 0.5) * 30);
 
         const height = Math.max(0, sinC);
-        intensity = height * 1.2;
+        intensity = Math.max(0.1, height * 1.2);
 
         const noon = new THREE.Color(0xffffff);
         const sunset = new THREE.Color(0xffaa55);
@@ -682,7 +684,7 @@ function updateLighting(delta) {
     } else {
         // Moon Logic (Opposite side)
         const moonCycle = cycle + Math.PI;
-        sunPos.set(Math.cos(moonCycle) * orbitRadius, Math.sin(moonCycle) * orbitRadius, 20);
+        sunPos.set(Math.cos(moonCycle) * orbitRadius, Math.sin(moonCycle) * orbitRadius, 30);
         
         intensity = 0.3 * Math.max(0, Math.sin(moonCycle));
         lightColor.setHex(0x6688aa); // Blueish
@@ -698,8 +700,8 @@ function updateLighting(delta) {
     scene.background.copy(skyColor);
 
     // Adjust Ambient/Hemi to match time
-    ambientLight.intensity = 0.1 + (intensity * 0.3);
-    hemiLight.intensity = 0.1 + (intensity * 0.2);
+    ambientLight.intensity = 0.1 + (intensity * 0.2);
+    hemiLight.intensity = 0.1 + (intensity * 0.1);
 }
 
 // --- Main Loop ---
